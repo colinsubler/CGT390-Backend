@@ -16,7 +16,8 @@
   padding: 2rem;
 }
 
-form {
+/* Scoped under .main so they’re valid in a CSS module */
+.main form {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -56,13 +57,14 @@ form {
   background-color: #0059c1;
 }
 
-a {
+/* Scoped link styling */
+.main a {
   color: #0070f3;
   text-decoration: none;
   font-size: 0.95rem;
 }
 
-a:hover {
+.main a:hover {
   text-decoration: underline;
 }
 
