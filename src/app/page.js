@@ -1,39 +1,50 @@
+"use client";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
 import styles from "./page.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-async function getTitles() {
-  const response = await fetch(
-    "https://web.ics.purdue.edu/~zong6/profile-app/get-titles.php",
-    { next: { revalidate: 60 } }
-  );
-  const data = await response.json();
-  return data ? data.titles : [];
-}
+export default function HomePage() {
+  const [titles, setTitles] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [title, setTitle] = useState("");
+  const [search, setSearch] = useState("");
+  const router = useRouter();
 
-async function getProfiles(title, search) {
-  const response = await fetch(
-    `https://web.ics.purdue.edu/~zong6/profile-app/fetch-data-with-filter.php?title=${encodeURIComponent(title || "")}&search=${encodeURIComponent(search || "")}&limit=1000`,
-    { next: { revalidate: 60 } }
-  );
-  const data = await response.json();
-  return data ? data.profiles : [];
-}
+  useEffect(() => {
+    async function loadTitles() {
+      const res = await fetch("https://web.ics.purdue.edu/~zong6/profile-app/get-titles.php");
+      const data = await res.json();
+      setTitles(data?.titles || []);
+    }
+    loadTitles();
+  }, []);
 
-export default async function HomePage({ searchParams }) {
-  const { title = "", search = "" } = searchParams || {};
-  const [titles, profiles] = await Promise.all([
-    getTitles(),
-    getProfiles(title, search),
-  ]);
+  useEffect(() => {
+    async function loadProfiles() {
+      const res = await fetch(
+        `https://web.ics.purdue.edu/~zong6/profile-app/fetch-data-with-filter.php?title=${encodeURIComponent(
+          title
+        )}&search=${encodeURIComponent(search)}&limit=1000`
+      );
+      const data = await res.json();
+      setProfiles(data?.profiles || []);
+    }
+    loadProfiles();
+  }, [title, search]);
 
   return (
     <div className={styles.container}>
       <Header />
       <main className={styles.main}>
         <h1>Profiles</h1>
-        <form action="/" method="get">
-          <select name="title" defaultValue={title} className={styles.select}>
+        <form onSubmit={(e) => e.preventDefault()} className={styles.form}>
+          <select
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={styles.select}
+          >
             <option value="">All Titles</option>
             {titles.map((t) => (
               <option key={t} value={t}>
@@ -41,26 +52,47 @@ export default async function HomePage({ searchParams }) {
               </option>
             ))}
           </select>
+
           <input
             type="text"
-            name="search"
-            defaultValue={search}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name"
             className={styles.input}
           />
-          <button type="submit" className={styles.button}>
+
+          <button type="button" className={styles.button}>
             Filter
           </button>
-          <Link href="/">Clear</Link>
+
+          <Link href="/" onClick={() => { setTitle(""); setSearch(""); }}>
+            Clear
+          </Link>
         </form>
+
         <ul className={styles.profileList}>
-          {profiles.map((profile) => (
-            <li key={profile.id} className={styles.profileItem}>
-              <h2>{profile.name}</h2>
-              <p>Title: {profile.title}</p>
-              <p>Email: {profile.email}</p>
-            </li>
-          ))}
+          {profiles.length === 0 ? (
+            <p>No profiles found.</p>
+          ) : (
+            profiles.map((profile) => (
+              <li
+                key={profile.id}
+                className={styles.profileItem}
+                onClick={() => router.push(`/profile/${profile.id}`)}
+              >
+                <img
+                  src={profile.image_url}
+                  alt={profile.name}
+                  className={styles.profileImage}
+                />
+                <div>
+                  <h2>{profile.name}</h2>
+                  <p>{profile.title}</p>
+                  <p>{profile.email}</p>
+                </div>
+              </li>
+            ))
+          )}
         </ul>
       </main>
     </div>
